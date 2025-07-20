@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LRU Software Installation Tool</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        #diagram {
+            margin: 20px auto;
+            width: 90%;
+            height: 600px;
+            border: 1px solid #ccc;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(0,0,0,0.3);
+            text-align: left;
+            z-index: 1000;
+        }
+        .popup-content {
+            white-space: pre-line;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .popup button {
+            background: #007BFF;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin-top: 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .popup button:hover {
+            background: #0056b3;
+        }
+        .popup h3 {
+            margin-top: 0;
+            color: #007BFF;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .node {
+            cursor: pointer;
+        }
+        .node:hover {
+            stroke: #007BFF;
+            stroke-width: 3px;
+        }
+        .instructions {
+            max-width: 800px;
+            margin: 0 auto 20px;
+            text-align: left;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>PAPIS & CCTV Communication System LRU Software Installation Workflow</h1>
+    
+    <div class="instructions">
+        <p><strong>Instructions:</strong> Click on any node in the diagram to view detailed software uploading process for that Line Replaceable Unit (LRU). You can drag nodes to rearrange the diagram for better visibility.</p>
+    </div>
+    
+    <!-- LRU Diagram will be displayed here -->
+    <div id="diagram"></div>
+
+    <!-- Popup for showing installation steps -->
+    <div id="popup" class="popup">
+        <h3 id="popup-title"></h3>
+        <div id="popup-content" class="popup-content"></div>
+        <button onclick="document.getElementById('popup').style.display='none'">Close</button>
+    </div>
+
+    <script>
+        // Define LRU nodes and their relationships
+        const nodes = [
+            { id: "Start", label: "Software Installation Start" },
+            { id: "Switch", label: "Switch Configuration" },
+            { id: "iCom", label: "iCom Controller Installation" },
+            { id: "CCU", label: "CCU Installation" },
+            { id: "PEAU", label: "PEAU Installation" },
+            { id: "ACP", label: "ACP Installation" },
+            { id: "AAU", label: "AAU Installation" },
+            { id: "LED", label: "LED Display Installation" },
+            { id: "TFT", label: "TFT Display Installation" },
+            { id: "PIS_HMI", label: "PIS-HMI Installation" },
+            { id: "CCTV_HMI", label: "CCTV-HMI Installation" },
+            { id: "Recorder", label: "Recorder Installation" },
+            { id: "Cameras", label: "Camera Setup & Configuration" },
+            { id: "End", label: "Final Verification & Testing" }
+        ];
+
+        const links = [
+            { source: "Start", target: "Switch" },
+            { source: "Switch", target: "iCom" },
+            { source: "iCom", target: "CCU" }, { source: "iCom", target: "PEAU" }, { source: "iCom", target: "ACP" }, { source: "iCom", target: "AAU" },
+            { source: "CCU", target: "LED" }, { source: "CCU", target: "TFT" },
+            { source: "PEAU", target: "PIS_HMI" }, { source: "ACP", target: "CCTV_HMI" },
+            { source: "AAU", target: "Recorder" },
+            { source: "Recorder", target: "Cameras" },
+            { source: "Cameras", target: "End" }
+        ];
+
+        const width = 900, height = 600;
+        const svg = d3.select("#diagram").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(120))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        const link = svg.selectAll("line")
+            .data(links)
+            .enter().append("line")
+            .attr("stroke", "#999")
+            .attr("stroke-width", 2);
+
+        const node = svg.selectAll("circle")
+            .data(nodes)
+            .enter().append("circle")
+            .attr("r", 30)
+            .attr("fill", d => d.id === "Start" || d.id === "End" ? "#4CAF50" : "#64B5F6")
+            .attr("stroke", "white")
+            .attr("stroke-width", 2)
+            .attr("class", "node")
+            .call(drag(simulation))
+            .on("click", function(event, d) {
+                showPopup(d.id);
+            });
+
+        const text = svg.selectAll("text")
+            .data(nodes)
+            .enter().append("text")
+            .attr("dy", 5)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "12px")
+            .attr("fill", "#333")
+            .text(d => d.label);
+
+        simulation.on("tick", () => {
+            link.attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node.attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            text.attr("x", d => d.x)
+                .attr("y", d => d.y - 35);
+        });
+
+        function drag(simulation) {
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+
+        function showPopup(lru) {
+            const installationSteps = {
+                "Start": "Before starting the installation, ensure the following items are available:\n1. Windows PC with the latest version of Televic Generic Upload Tool (TGUT) (version 2.xx.xx or above).\n2. Ethernet cable (RJ45 – M12).\n3. TGUT configuration files.\n4. USB drive (for certain updates).\n5. Moxa switch configurations (if required).\n\nVerify Current Software Version:\n1. Open TGUT tool.\n2. Use the Version Checker Tool (Extra > Start).\n3. Export version details (Export button) for record-keeping.\n4. If needed, check the DSS and JIM status pages:\n   - DSS: http://176.16.X.200:8080/status and http://176.16.X.204:8080/status\n   - JIM: http://176.16.X.200:8082/status and http://176.16.X.204:8082/status\n   - Replace X with the applicable unit number.",
+                
+                "Switch": "A. IP Switch Configuration:\n1. Set PC IP to 192.168.1.1\n2. Access the Moxa Switch (Default IP: 192.168.127.253)\n3. Login: admin (password blank)\n4. Update firmware to V3.5.10 build 17110314\n5. Upload INI configuration file\n6. Change switch IP to match project (176.16.X.XXX)\n7. Save and verify\n\nB. Moxa Switch Assignment (Per Car):\n1. DMC Left Car: 28-port switch\n2. T Car 1: 16-port switch\n3. Motor Car 1: 28-port switch\n4. Motor Car 2: 28-port switch\n5. T Car 2: 16-port switch\n6. DMC Right Car: 28-port switch",
+                
+                "iCom": "A. Initial Version (Old IP: 80.0.0.10):\n1. Manually connect PC (set IP: 80.0.0.1, subnet 248.0.0.0).\n2. Select unit number 0 in TGUT.\n3. Upload 33.96.8620 file system (causes auto-restart).\n4. The iCom gets a new IP (176.16.X.200/204).\n5. Retype unit number in TGUT and proceed.\n\nB. Previously Updated iCom (New IP: 176.16.X.200/204):\n1. Upload 33.96.8620 file system.\n2. Upload the following:\n   - 33.96.8159 MUC Configuration\n   - 33.96.7787 JIM Configuration\n   - 33.96.7827 Dataset content\n   - 33.96.7828 Dataset Rail\n   - 33.96.8050 JIM\n   - 33.96.7526 LiveCom Client\n   - 33.96.7576 DSS Configuration\n   - 33.96.7603 DSS\n3. Manually reboot iCom Controller.",
+                
+                "CCU": "Central Control Unit Installation:\n1. Upload:\n   - 33.96.8128 SW ES FIP Kolkata filesystem\n   - 33.96.8141 SW ES FIP CCU config Kolkata\n   - 33.96.8140 SW ES FIP CCU app Kolkata\n   - 33.96.8205 Jingles Kolkata\n2. Note: Firmware updates must be done by the supplier.",
+                
+                "PEAU": "Passenger Emergency Alarm Unit Installation:\n1. Upload:\n   - 33.96.8128 SW ES FIP Kolkata filesystem\n   - 33.96.8143 SW ES FIP PEAU config Kolkata\n   - 33.96.8142 SW ES FIP PEAU app Kolkata\n   - 33.96.8205 Jingles Kolkata\n2. Manually reboot the PEAU.",
+                
+                "ACP": "Auxiliary Communication Panel Installation:\n1. Upload:\n   - 33.96.8128 SW ES FIP Kolkata filesystem\n   - 33.96.8149 SW ES FIP ACP config Kolkata\n   - 33.96.8148 SW ES FIP ACP app Kolkata",
+                
+                "AAU": "Audio Amplifier Unit Installation:\n1. Upload:\n   - 33.96.8128 SW ES FIP Kolkata filesystem\n   - 33.96.8147 SW ES FIP AAU config Kolkata\n   - 33.96.8146 SW ES FIP AAU app Kolkata",
+                
+                "LED": "LED Display Installation:\n1. Upload:\n   - 33.96.8094 Led Streamer (causes auto-restart)",
+                
+                "TFT": "A. Initial Update:\n1. Power on one TFT at a time.\n2. Identify TFT appearing under OLD IP (e.g., 176.16.1.24).\n3. Perform Step 3 (below) and repeat for each TFT.\n\nB. Update for Previously Installed TFTs:\n1. Identify TFT under the correct IP (e.g., 176.16.1.25).\n2. Perform Step 3.\n\nC. Step 3: Upload\n1. 33.96.7619 Sensor Tooling\n2. 33.96.7644 Display Settings\n3. 33.96.7699 Firmware\n4. Manually reboot the TFTs.",
+                
+                "PIS_HMI": "A. Newer Version (After SWP 1.07):\n1. Insert USB drive and power on device.\n2. Installation auto-starts.\n3. Remove USB and reboot.\n\nB. Previously Updated PIS-HMIs:\n1. Upload:\n   - 33.96.8191 Config\n   - 33.96.8158 Application",
+                
+                "CCTV_HMI": "A. Newer Version (After SWP 1.07):\n1. Insert USB drive and power on.\n2. Auto-install starts.\n3. Remove USB and reboot.\n\nB. Previously Updated CCTV-HMIs:\n1. Upload:\n   - 33.96.8190 Config\n   - 33.96.8158 Application",
+                
+                "Recorder": "Recorder Installation Process:\n1. Connect recorder to switch via M12 cable.\n2. Ensure DHCP server mode is enabled.\n3. Upload .dat configuration file:\n   Setting_template.exe -h <recorder_ip> -t <template_name.dat>\n   - <recorder_ip> = Recorder IP (e.g., 176.16.X.311 for DMCL, 176.16.X.1941 for DMCR)\n   - <template_name.dat> = front_car.dat or back_car.dat",
+                
+                "Cameras": "A. For new cameras:\n1. Connect PC, configure IP as 80.0.0.30.\n2. Open browser and navigate to 80.0.0.96.\n3. Login: root / pass.\n4. Set 50Hz frequency and save.\n5. Change to project-specific IP (see IP Address table).\n6. Label camera with new IP.\n\nB. For previously installed cameras:\n1. Ensure DHCP settings are enabled.\n2. Verify via browser.\n\nC. Video Streaming Configuration:\n1. Set H.264 profile to Main.\n2. Bitrate: 4000 kbit/s.\n3. Save and verify.\n\nIP Addresses for Cameras (format 176.16.X.YYY, where X is train unit number):\n- DMC Left Car:\n  - Saloon: 176.16.X.6, 176.16.X.7, 176.16.X.8, 176.16.X.9\n  - Exterior: 176.16.X.10, 176.16.X.11\n- T Car 1: 176.16.X.37, 176.16.X.38, 176.16.X.39, 176.16.X.40\n- Motor Car 1:\n  - Saloon: 176.16.X.69, 176.16.X.70, 176.16.X.71, 176.16.X.72\n  - Intermediate: 176.16.X.73, 176.16.X.74\n- Motor Car 2:\n  - Saloon: 176.16.X.1331, 176.16.X.1341, 176.16.X.1351, 176.16.X.1361\n  - Intermediate: 176.16.X.1371, 176.16.X.1381\n- T Car 2: 176.16.X.1011, 176.16.X.1021, 176.16.X.1031, 176.16.X.1041\n- DMC Right Car:\n  - Saloon: 176.16.X.1651, 176.16.X.1661, 176.16.X.1671, 176.16.X.1681\n  - Exterior: 176.16.X.1691, 176.16.X.1701",
+                
+                "End": "Final Verification Process:\n1. Hard reset all updated devices.\n2. Use TGUT tool to check versions of all components.\n3. Perform a comprehensive test run of the system.\n4. Document the updated software versions for record-keeping."
+            };
+
+            document.getElementById("popup-title").innerText = lru + " Installation";
+            document.getElementById("popup-content").innerText = installationSteps[lru] || "Details not available.";
+            document.getElementById("popup").style.display = "block";
+        }
+    </script>
+
+</body>
+</html>
